@@ -93,6 +93,13 @@ for ($x=0; $x<$cnt; $x++) {
 	}
 	//If it's already in there it has all four of those fields since there's no way for it to be entered otherwise.
 	
+	//Check if the guild is still on the same server
+	if($row1['guild_world'] != $guilds_claimed_worlds[$x]){
+		if (!mysqli_query($con,"UPDATE guild_table SET guild_world='$guilds_claimed_worlds[$x]' WHERE guild_id='$guilds_claimed_ids[$x]'")) {
+		echo("Error description: " . mysqli_error($con));
+		}
+	}
+	
 	//Check if emblem is already in database
 	if($row1['guild_emblem'] == NULL){
 		//RUN EMBLEMFORGE/HERALD FUNCTION HERE
