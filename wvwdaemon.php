@@ -56,23 +56,24 @@ foreach ($matches_list as $wvw_match){
 		//Store it into local variables
 		foreach ($mapsInfo as $holder){
 			foreach ($holder as $map_entry){
-				foreach ($map_entry as $objective_entry){
-					if(isset($objective_entry['owner_guild'])){
-						$guilds_claimed_ids[$cnt] = mysqli_real_escape_string($con,$objective_entry['owner_guild']);
-						$guilds_claimed_names[$cnt] = mysqli_real_escape_string($con,getNameFromId($objective_entry['owner_guild']));
-						$guilds_claimed_tags[$cnt] = mysqli_real_escape_string($con,getTagFromId($objective_entry['owner_guild']));
-						if($objective_entry['owner']=='Red'){
-							$guilds_claimed_worlds[$cnt]=mysqli_real_escape_string($con,$RedName);
-						} elseif($objective_entry['owner']=='Green'){
-							$guilds_claimed_worlds[$cnt]=mysqli_real_escape_string($con,$GreenName);
-						} elseif($objective_entry['owner']=='Blue') {
-							$guilds_claimed_worlds[$cnt]=mysqli_real_escape_string($con,$BlueName);
+				if (is_array($map_entry)) {
+					foreach ($map_entry as $objective_entry){
+						if(isset($objective_entry['owner_guild'])){
+							$guilds_claimed_ids[$cnt] = mysqli_real_escape_string($con,$objective_entry['owner_guild']);
+							$guilds_claimed_names[$cnt] = mysqli_real_escape_string($con,getNameFromId($objective_entry['owner_guild']));
+							$guilds_claimed_tags[$cnt] = mysqli_real_escape_string($con,getTagFromId($objective_entry['owner_guild']));
+							if($objective_entry['owner']=='Red'){
+								$guilds_claimed_worlds[$cnt]=mysqli_real_escape_string($con,$RedName);
+							} elseif($objective_entry['owner']=='Green'){
+								$guilds_claimed_worlds[$cnt]=mysqli_real_escape_string($con,$GreenName);
+							} elseif($objective_entry['owner']=='Blue') {
+								$guilds_claimed_worlds[$cnt]=mysqli_real_escape_string($con,$BlueName);
+							}
+							$cnt=$cnt+1;
+							echo $cnt.", ";
 						}
-						$cnt=$cnt+1;
-						echo $cnt;
 					}
 				}
-				
 			}
 		}
 	}
@@ -94,22 +95,24 @@ for ($x=0; $x<$cnt; $x++) {
 	//If it's already in there it has all four of those fields since there's no way for it to be entered otherwise.
 	
 	//Check if the guild is still on the same server
-	if($row1['guild_world'] != $guilds_claimed_worlds[$x]){
+	if(mysqli_real_escape_string($con,$row1['guild_world']) != $guilds_claimed_worlds[$x]){
 		if (!mysqli_query($con,"UPDATE guild_table SET guild_world='$guilds_claimed_worlds[$x]' WHERE guild_id='$guilds_claimed_ids[$x]'")) {
-		echo("Error description: " . mysqli_error($con));
+			echo("Error description: " . mysqli_error($con));
 		}
 	}
 	
 	//Check if emblem is already in database
-	if($row1['guild_emblem'] == NULL){
-		//RUN EMBLEMFORGE/HERALD FUNCTION HERE
-		$emblemsavedimage = herald($guilds_claimed_ids[$x]);
-		if (!mysqli_query($con,"UPDATE guild_table SET guild_emblem='$emblemsavedimage' WHERE guild_id='$guilds_claimed_ids[$x]'")) {
-		echo("Error description: " . mysqli_error($con));
+	if (array_key_exists('guild_emblem', $row1)) {
+		if($row1['guild_emblem'] == NULL){
+			//RUN EMBLEMFORGE/HERALD FUNCTION HERE
+			$emblemsavedimage = herald($guilds_claimed_ids[$x]);
+			if (!mysqli_query($con,"UPDATE guild_table SET guild_emblem='$emblemsavedimage' WHERE guild_id='$guilds_claimed_ids[$x]'")) {
+			echo("Error description: " . mysqli_error($con));
+			}
 		}
 	}
 	// The echo is to show progress when running from command line so I can tell if it gets stuck
-	echo $x;
+	echo $x." ,";
 }
 mysqli_close($con);
 // The echo is to show progress when running from command line so I can tell if it gets stuck
@@ -124,7 +127,11 @@ function gw2_api_request($request){
 	}
  
 	$nl = "\r\n";
-	$header = 'GET '.$url['path'].'?'.$url['query'].' HTTP/1.1'.$nl.'Host: '.$url['host'].$nl.'Connection: Close'.$nl.$nl;
+	if (array_key_exists('query',$url)){
+		$header = 'GET '.$url['path'].'?'.$url['query'].' HTTP/1.1'.$nl.'Host: '.$url['host'].$nl.'Connection: Close'.$nl.$nl;
+	} else {
+		$header = 'GET '.$url['path'].' HTTP/1.1'.$nl.'Host: '.$url['host'].$nl.'Connection: Close'.$nl.$nl;
+		}
 	fwrite($fp, $header);
 	stream_set_timeout($fp, 5);
  
@@ -146,7 +153,7 @@ function gw2_api_request($request){
 	return $response;
 }
 
-function imagehue(&$image, $color) {
+function imagehue($image, $color) {
 	$width = imagesx($image);
 	$height = imagesy($image);
 	$matrix = getColorMatrix($color);
